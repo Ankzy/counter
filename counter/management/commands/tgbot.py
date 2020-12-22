@@ -1,6 +1,5 @@
 from django.core.management.base import BaseCommand
 import telebot
-from collections import defaultdict
 from counter.models import User, Place
 
 class Command(BaseCommand):
@@ -11,7 +10,6 @@ class Command(BaseCommand):
         token = '1413357704:AAEEgjkYYkj3ilqXibHBp848byt41Jb34cM'
         bot = telebot.TeleBot(token)
 
-        plcs = defaultdict(list)
 
         @bot.message_handler(commands=['add'])
         def add_place(message):
