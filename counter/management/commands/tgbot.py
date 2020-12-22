@@ -1,43 +1,43 @@
 from django.core.management.base import BaseCommand
 import telebot
+from collections import defaultdict
+from counter.models import User, Place
 
 class Command(BaseCommand):
     help = 'Telegram Bot'
 
     def handle(self, *args, **options):
-        token = '1413357704:AAEEgjkYYkj3ilqXibHBp848byt41Jb34cM'
 
+        token = '1413357704:AAEEgjkYYkj3ilqXibHBp848byt41Jb34cM'
         bot = telebot.TeleBot(token)
 
-        currencies = ['евро', 'доллар']
+        plcs = defaultdict(list)
 
-        def check_currency(message):
-            for c in currencies:
-                if c in message.text.lower():
-                    return True
-            return False
-
-        def check_currency_value(text):
-            currency_values = {"евро": 70, "доллар": 60}
-            for currency, value in currency_values.items():
-                if currency in text.lower():
-                    return currency, value
-            return None, None
-
-        @bot.message_handler(commands=['rate'])
-        @bot.message_handler(func=check_currency)
-        def hangle_currency(message):
-            print(message.text)
-            currency, value = check_currency_value(message.text)
-            if currency:
-                bot.send_message(chat_id=message.chat.id, text="Курс {} равен {}.".format(currency, value))
+        @bot.message_handler(commands=['add'])
+        def add_place(message):
+            if User.objects.filter(tg=message.chat.id):
+                c = Place(title=message.text[5:], user=User.objects.get(tg=message.chat.id))
+                c.save()
             else:
-                bot.send_message(chat_id=message.chat.id, text="Узнай курс валют!")
+                u = User(tg=message.chat.id)
+                u.save()
+                c = Place(title=message.text[5:], user=User.objects.get(tg=message.chat.id))
+                c.save()
+            bot.send_message(chat_id=message.chat.id, text="Место {} добавлено".format(message.text[5:]))
 
-        @bot.message_handler()
-        def hangle_message(message):
-            print(message.text)
-            bot.send_message(chat_id=message.chat.id, text="Узнай курс валют")
+        @bot.message_handler(commands=['list'])
+        def list_place(message):
+            if not Place.objects.filter(user=User.objects.get(tg=message.chat.id)):
+                txt = 'Вы пока не добавили ни одного места.'
+            else:
+                txt = ''
+                for now in Place.objects.filter(user=User.objects.get(tg=message.chat.id)):
+                    txt += str(now.title) + '\n'
+            bot.send_message(chat_id=message.chat.id, text=txt)
+
+        @bot.message_handler(commands=['reset'])
+        def add_place(message):
+            Place.objects.all().delete()
+            bot.send_message(chat_id=message.chat.id, text='Все ранее добавленные локации удалены.')
 
         bot.polling()
-        print('bot is running')
